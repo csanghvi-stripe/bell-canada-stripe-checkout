@@ -179,18 +179,22 @@
   </div>
   
   <script>
-    const stripe = Stripe('pk_test_your_publishable_key'); // Replace with your actual publishable key
+    const stripe = Stripe('pk_test_51PvkPrHIlfdz3m5tuzExO6euDe0TScV2fJY1MAPxNhTldWipi2hZgdMFD2MU24pKEkSan3xL8jwn5l4ZdXDmvC0f0083rDVDoQ'); // Replace with your actual publishable key
     
     let elements;
     
     initialize();
     
     async function initialize() {
-      const response = await fetch("/create-payment-intent", {
+      const response = await fetch("/api/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ }),
       });
+      
+      // The rest of the function...
+    }
+
       
       const { clientSecret } = await response.json();
       

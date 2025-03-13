@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "buildCommand": "",
+  "devCommand": "node server-local.js",
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "cart.html", "use": "@vercel/static" },
+    { "src": "checkout.html", "use": "@vercel/static" },
+    { "src": "success.html", "use": "@vercel/static" },
+    { "src": "public/**/*", "use": "@vercel/static" },
+    { "src": "api/**/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/cart", "dest": "/cart.html" },
+    { "src": "/checkout", "dest": "/checkout.html" },
+    { "src": "/success", "dest": "/success.html" },
+    { "src": "/styles.css", "dest": "/public/styles.css" },
+    { "src": "/images/(.*)", "dest": "/public/images/$1" }
+  ]
+}
+
