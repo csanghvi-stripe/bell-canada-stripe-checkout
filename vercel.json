@@ -1,16 +1,17 @@
 {
   "version": 2,
+  "public": true,
   "builds": [
     { "src": "public/**/*", "use": "@vercel/static" },
     { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "handle": "filesystem" },
     { "src": "/", "dest": "/public/index.html" },
     { "src": "/cart", "dest": "/public/cart.html" },
     { "src": "/checkout", "dest": "/public/checkout.html" },
     { "src": "/success", "dest": "/public/success.html" },
+    { "src": "/(.+\\.[a-zA-Z]+)$", "dest": "/public/$1" },
     { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
