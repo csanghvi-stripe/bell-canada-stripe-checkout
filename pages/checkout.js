@@ -1,410 +1,190 @@
 // pages/checkout.js
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 
 export default function Checkout() {
-  const [cardBrand, setCardBrand] = useState('');
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
+  const [cardBrand, setCardBrand] = useState('');
+  const [dob, setDob] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [stripeInitialized, setStripeInitialized] = useState(false);
-  const [paymentElementReady, setPaymentElementReady] = useState(false);
-  const [errorMessages, setErrorMessages] = useState([]);
-  const [isLinkEnabled, setIsLinkEnabled] = useState(false);
-
-  // Log errors to console and state
-  const logError = (message, error = null) => {
-    const timestamp = new Date().toISOString();
-    const errorObj = { timestamp, message, details: error ? error.toString() : null };
-    
-    console.error(`[${timestamp}] Checkout Error:`, message, error || '');
-    setErrorMessages(prev => [...prev, errorObj]);
-    
-    return errorObj;
-  };
-
-  // Handle email change
-  const handleEmailChange = (e) => {
-    const newEmail = e.target.value;
-    setEmail(newEmail);
-    
-    // If Stripe is initialized, update the linkAuthenticationElement
-    if (stripeInitialized && window.linkAuthenticationElement) {
-      try {
-        window.linkAuthenticationElement.update({ defaultValues: { email: newEmail } });
-        console.log('Link Authentication Element updated with email:', newEmail);
-      } catch (error) {
-        logError('Failed to update Link Authentication Element with email', error);
-      }
-    }
-  };
+  const [stripe, setStripe] = useState(null);
+  const [elements, setElements] = useState(null);
 
   useEffect(() => {
-    console.log('Checkout component mounted');
-    let stripe, elements, paymentElement, linkAuthenticationElement;
+    // Load Stripe.js script
+    const stripeScript = document.createElement('script');
+    stripeScript.src = 'https://js.stripe.com/v3/';
+    stripeScript.async = true;
     
-    // Load Stripe.js
-    const loadStripe = async () => {
+    stripeScript.onload = async () => {
+      // Initialize Stripe
       try {
-        console.log('Loading Stripe.js script');
+        const stripeInstance = window.Stripe('sk_test_51PvkPrHIlfdz3m5tj7nZkjAUsvZtJWhpuv2V1w207BEzqaQkiTlDkGntR54QXJavTwKTeX0yQYLGGRl3Y0QtfgxQ00LTpTatV9'); // Replace with your key
+        setStripe(stripeInstance);
         
-        // Check if Stripe is already loaded
-        if (window.Stripe) {
-          console.log('Stripe already loaded, initializing...');
-          initializeStripe();
-          return;
-        }
-        
-        const stripeScript = document.createElement('script');
-        stripeScript.src = 'https://js.stripe.com/v3/';
-        stripeScript.async = true;
-        
-        stripeScript.onload = () => {
-          console.log('Stripe.js script loaded successfully');
-          initializeStripe();
-        };
-        
-        stripeScript.onerror = (error) => {
-          logError('Failed to load Stripe.js script', error);
-        };
-        
-        document.body.appendChild(stripeScript);
-      } catch (error) {
-        logError('Error in loadStripe function', error);
-      }
-    };
-    
-    // Initialize Stripe with the publishable key
-    const initializeStripe = () => {
-      try {
-        console.log('Initializing Stripe...');
-        
-        // Replace with your actual publishable key
-        stripe = window.Stripe('pk_test_51PvkPrHIlfdz3m5tuzExO6euDe0TScV2fJY1MAPxNhTldWipi2hZgdMFD2MU24pKEkSan3xL8jwn5l4ZdXDmvC0f0083rDVDoQ');
-        window.stripe = stripe; // Store for global access if needed
-        
-        setStripeInitialized(true);
-        console.log('Stripe initialized successfully');
-        
-        // Now create payment intent and set up elements
-        createPaymentIntent();
-      } catch (error) {
-        logError('Failed to initialize Stripe', error);
-      }
-    };
-    
-    // Create a payment intent and initialize Stripe Elements
-    const createPaymentIntent = async () => {
-      try {
-        console.log('Creating payment intent...');
-        
+        // Create a payment intent
         const response = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
         });
         
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`API returned ${response.status}: ${errorText}`);
+          throw new Error('Failed to create payment intent');
         }
         
         const { clientSecret } = await response.json();
-        console.log('Payment intent created successfully');
-        
-        // Initialize Elements
-        initializeElements(clientSecret);
-      } catch (error) {
-        logError('Failed to create payment intent', error);
-        
-        // Show error in the UI
-        const messageElement = document.getElementById('payment-message');
-        if (messageElement) {
-          messageElement.textContent = `Failed to initialize payment: ${error.message}`;
-          messageElement.style.display = 'block';
-        }
-      }
-    };
-    
-    // Initialize Stripe Elements with the client secret
-    const initializeElements = (clientSecret) => {
-      try {
-        console.log('Initializing Stripe Elements...');
-        
-        const appearance = {
-          theme: 'stripe',
-          variables: {
-            colorPrimary: '#00549a',
-          },
-        };
         
         // Create Elements instance
-        elements = stripe.elements({
-          appearance,
+        const elementsInstance = stripeInstance.elements({
           clientSecret,
-          loader: 'auto',
+          appearance: {
+            theme: 'stripe',
+            variables: {
+              colorPrimary: '#00549a',
+              colorBackground: '#ffffff',
+              colorText: '#333333',
+              colorDanger: '#e53935',
+            },
+            rules: {
+              '.Input': {
+                borderColor: '#ddd'
+              },
+              '.Input:focus': {
+                borderColor: '#00549a'
+              }
+            }
+          }
         });
-        
-        window.elements = elements; // Store for global access if needed
         
         // Create and mount Link Authentication Element
-        console.log('Creating Link Authentication Element...');
-        linkAuthenticationElement = elements.create('linkAuthentication', {
-          defaultValues: {
-            email: email, // Use the initial email value from state
-          },
+        const linkAuthenticationElement = elementsInstance.create('linkAuthentication', {
+          defaultValues: { email }
         });
-        
-        window.linkAuthenticationElement = linkAuthenticationElement;
-        
-        // Mount the Link Authentication Element
         linkAuthenticationElement.mount('#link-authentication-element');
         
-        // Listen for changes to detect when Link is available
-        linkAuthenticationElement.on('change', (event) => {
-          console.log('Link Authentication Element change:', event);
-          
-          // Check if Link is enabled
-          if (event.value && event.value.email) {
-            console.log('Email detected in Link:', event.value.email);
-            setEmail(event.value.email);
-          }
-          
-          setIsLinkEnabled(!!event.value && !!event.value.email);
-        });
-        
         // Create and mount Payment Element
-        console.log('Creating Payment Element...');
-        paymentElement = elements.create('payment', {
+        const paymentElement = elementsInstance.create('payment', {
           fields: {
-            billingDetails: {
-              name: 'never',
-              email: 'never', // We collect email separately
-            },
-          },
-        });
-        
-        window.paymentElement = paymentElement;
-        
-        // Listen for changes to detect card brand
-        paymentElement.on('change', (event) => {
-          console.log('Payment Element change event:', event);
-          
-          // Set payment element ready state
-          setPaymentElementReady(event.complete || false);
-          
-          // Check if event has complete payment details and a brand
-          if (event.value && event.value.type === 'card' && event.value.card && event.value.card.brand) {
-            const detectedBrand = event.value.card.brand;
-            setCardBrand(detectedBrand);
-            console.log('Card brand detected:', detectedBrand);
-            
-            // Update UI to show the detected card brand
-            const cardBrandDisplay = document.getElementById('card-brand-display');
-            if (cardBrandDisplay) {
-              cardBrandDisplay.textContent = `${detectedBrand.toUpperCase()} card detected`;
-              cardBrandDisplay.style.display = 'block';
-            }
-          } else if (event.empty) {
-            // Clear card brand when field is emptied
-            setCardBrand('');
-            const cardBrandDisplay = document.getElementById('card-brand-display');
-            if (cardBrandDisplay) {
-              cardBrandDisplay.style.display = 'none';
+            billingDetails: { 
+              email: 'never',
+              name: 'never'
             }
           }
         });
-        
-        // Mount payment element
         paymentElement.mount('#payment-element');
-        console.log('Payment Element mounted successfully');
         
-        // Set up form submission handler
-        const form = document.getElementById('payment-form');
-        if (form) {
-          form.addEventListener('submit', handleSubmit);
-          console.log('Form submission handler attached');
-        } else {
-          logError('Payment form not found in DOM');
-        }
-        
-      } catch (error) {
-        logError('Failed to initialize Stripe Elements', error);
-        
-        // Show error in the UI
-        const messageElement = document.getElementById('payment-message');
-        if (messageElement) {
-          messageElement.textContent = `Failed to initialize payment form: ${error.message}`;
-          messageElement.style.display = 'block';
-        }
-      }
-    };
-    
-    // Handle form submission
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      console.log('Form submitted');
-      
-      // Show processing state
-      setLoading(true);
-      
-      // Validate email
-      if (!email || !email.includes('@')) {
-        showMessage('Please enter a valid email address');
-        setLoading(false);
-        return;
-      }
-      
-      // Validate date of birth
-      const dob = document.getElementById('dob').value;
-      if (!dob) {
-        showMessage('Please enter your date of birth');
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        console.log('Confirming payment...');
-        
-        // Confirm the payment
-        const { error } = await stripe.confirmPayment({
-          elements,
-          confirmParams: {
-            return_url: window.location.origin + '/success',
-            receipt_email: email,
-            payment_method_data: {
-              billing_details: {
-                name: 'Jason Bourne',
-                email: email,
-                address: {
-                  city: 'Vancouver',
-                  country: 'CA',
-                  line1: '220-885 Georgia St',
-                  postal_code: 'V6C 3E8',
-                  state: 'BC'
-                }
-              },
-            },
-          },
-        });
-        
-        // Handle any errors
-        if (error) {
-          logError('Payment confirmation error', error);
-          
-          if (error.type === 'card_error' || error.type === 'validation_error') {
-            showMessage(error.message);
+        // Listen for changes in the Payment Element
+        paymentElement.on('change', (event) => {
+          if (event.value && event.value.type === 'card' && event.value.card && event.value.card.brand) {
+            setCardBrand(event.value.card.brand);
           } else {
-            showMessage('An unexpected error occurred during payment processing.');
+            setCardBrand('');
           }
           
-          setLoading(false);
-        } else {
-          // This point is typically not reached as the page will redirect on success
-          console.log('Payment successful - this message will not typically be seen');
-        }
-      } catch (error) {
-        logError('Exception during payment confirmation', error);
-        showMessage('An error occurred while processing your payment.');
-        setLoading(false);
-      }
-    };
-    
-    // Show message in the UI
-    const showMessage = (messageText) => {
-      console.log('Showing message:', messageText);
-      
-      const messageContainer = document.getElementById('payment-message');
-      if (messageContainer) {
-        messageContainer.textContent = messageText;
-        messageContainer.style.display = 'block';
+          // Clear error message when user makes changes
+          if (errorMessage) {
+            setErrorMessage('');
+          }
+        });
         
-        // Hide the message after 8 seconds
-        setTimeout(function () {
-          messageContainer.style.display = 'none';
-          messageContainer.textContent = '';
-        }, 8000);
-      } else {
-        console.warn('Message container not found in DOM');
+        setElements(elementsInstance);
+        setStripeInitialized(true);
+      } catch (error) {
+        console.error('Error initializing Stripe:', error);
+        setErrorMessage('Failed to load payment system. Please refresh the page or try again later.');
       }
     };
     
-    // Set loading state
-    const setLoading = (isLoading) => {
-      const submitButton = document.getElementById('submit');
-      const spinner = document.getElementById('spinner');
-      const buttonText = document.getElementById('button-text');
-      
-      if (!submitButton || !spinner || !buttonText) {
-        console.warn('Submit button elements not found in DOM');
-        return;
-      }
-      
-      if (isLoading) {
-        submitButton.disabled = true;
-        spinner.style.display = 'inline';
-        buttonText.style.display = 'none';
-      } else {
-        submitButton.disabled = false;
-        spinner.style.display = 'none';
-        buttonText.style.display = 'inline';
-      }
+    stripeScript.onerror = () => {
+      console.error('Failed to load Stripe.js');
+      setErrorMessage('Failed to load payment system. Please refresh the page or try again later.');
     };
     
-    // Load Stripe
-    loadStripe();
+    document.body.appendChild(stripeScript);
     
-    // Cleanup function
     return () => {
-      console.log('Cleaning up Checkout component...');
-      
-      // Remove event listeners to prevent memory leaks
-      const form = document.getElementById('payment-form');
-      if (form) {
-        form.removeEventListener('submit', handleSubmit);
-      }
-      
-      // Clean up Stripe elements if necessary
-      if (paymentElement) {
-        paymentElement.unmount();
-        console.log('Payment Element unmounted');
-      }
-      
-      if (linkAuthenticationElement) {
-        linkAuthenticationElement.unmount();
-        console.log('Link Authentication Element unmounted');
+      // Cleanup if component unmounts
+      if (document.body.contains(stripeScript)) {
+        document.body.removeChild(stripeScript);
       }
     };
-  }, []); // Empty dependency array means this effect runs once on mount
+  }, [email, errorMessage]);
 
-  // Render any errors in development mode
-  const renderErrorLog = () => {
-    if (process.env.NODE_ENV !== 'development' || errorMessages.length === 0) {
-      return null;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!stripe || !elements) {
+      // Stripe has not loaded yet
+      return;
     }
     
-    return (
-      <div style={{
-        marginTop: '20px',
-        padding: '15px',
-        backgroundColor: '#fff0f0',
-        border: '1px solid #ffcccc',
-        borderRadius: '4px',
-      }}>
-        <h4 style={{ margin: '0 0 10px', color: '#cc0000' }}>Debug Error Log:</h4>
-        <ul style={{ margin: 0, padding: '0 0 0 20px' }}>
-          {errorMessages.map((err, index) => (
-            <li key={index} style={{ marginBottom: '5px' }}>
-              <strong>{err.timestamp}:</strong> {err.message}
-              {err.details && <pre style={{ margin: '5px 0', backgroundColor: '#f9f9f9', padding: '5px', overflow: 'auto' }}>{err.details}</pre>}
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
+    setIsLoading(true);
+    
+    // Validate form fields
+    if (!email) {
+      setErrorMessage('Please enter your email address.');
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!dob) {
+      setErrorMessage('Please enter your date of birth.');
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/success`,
+          receipt_email: email,
+          payment_method_data: {
+            billing_details: {
+              name: 'Jason Bourne',
+              email: email,
+              address: {
+                city: 'Vancouver',
+                country: 'CA',
+                line1: '220-885 Georgia St',
+                postal_code: 'V6C 3E8',
+                state: 'BC'
+              }
+            }
+          }
+        }
+      });
+      
+      if (error) {
+        if (error.type === 'card_error' || error.type === 'validation_error') {
+          setErrorMessage(error.message || 'An error occurred with your payment information.');
+        } else {
+          setErrorMessage('An unexpected error occurred during payment processing.');
+        }
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      setErrorMessage('An error occurred while processing your payment.');
+    }
+    
+    setIsLoading(false);
+  };
+  
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+  };
+  
+  const handleDobChange = (e) => {
+    setDob(e.target.value);
   };
 
   return (
-    <div>
+    <>
       <Head>
         <title>Setup &amp; verification | Checkout | Bell Canada</title>
         <meta name="description" content="Bell Canada checkout page" />
@@ -478,14 +258,13 @@ export default function Checkout() {
               <p>Jason Bourne</p>
             </div>
 
-            <form id="payment-form">
-              {/* Email input for Stripe Link */}
+            <form onSubmit={handleSubmit} id="payment-form">
               <div className="form-group">
-                <label htmlFor="customer-email" className="form-label">
-                  <span style={{color: '#e53935'}}>*</span> Email address
+                <label htmlFor="email" className="form-label">
+                  <span>*</span> Email address
                 </label>
                 <input 
-                  id="customer-email"
+                  id="email"
                   type="email"
                   value={email}
                   onChange={handleEmailChange}
@@ -493,73 +272,80 @@ export default function Checkout() {
                   placeholder="email@example.com"
                   required
                 />
-                <p className="small-text" style={{margin: '5px 0 0', color: '#666'}}>
+                <p className="small-text">
                   We'll send your receipt to this email
                 </p>
               </div>
               
-              {/* Link Authentication Element - Will appear once email is entered */}
-              <div 
-                id="link-authentication-element" 
-                style={{marginBottom: '20px'}}
-              >
+              <div id="link-authentication-element" className="form-group">
                 {/* Stripe Link will mount here */}
               </div>
-              
-              {/* Payment details section */}
-              <div className="form-section">
-                <div className="form-group">
-                  <label htmlFor="payment-element" className="form-label">
-                    <span style={{color: '#e53935'}}>*</span> Payment information
-                  </label>
-                  <div id="payment-element" className="card-details">
-                    {/* Stripe Payment Element will mount here */}
-                  </div>
-                  
-                  {/* Card Brand Display Element */}
+
+              <div className="form-group">
+                <label htmlFor="payment-element" className="form-label">
+                  <span>*</span> Payment information
+                </label>
+                <div id="payment-element" className="card-details">
+                  {/* Stripe Payment Element will mount here */}
+                </div>
+                
+                {cardBrand && (
                   <div 
                     id="card-brand-display" 
-                    style={{
-                      display: 'none', 
-                      marginTop: '10px',
-                      padding: '8px 12px',
-                      backgroundColor: '#f0f9ff',
-                      borderRadius: '4px',
-                      color: 'var(--bell-blue)',
-                      fontWeight: '500'
-                    }}
+                    style={{display: 'flex', marginTop: '10px'}}
                   >
-                    {cardBrand && `${cardBrand.toUpperCase()} card detected`}
+                    {cardBrand.toUpperCase()} card detected
                   </div>
-                </div>
+                )}
+              </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="dob">
-                    <span style={{color: '#e53935'}}>*</span> Date of Birth
-                  </label>
-                  <input type="text" id="dob" className="form-control" placeholder="MM/DD/YYYY" />
-                </div>
+              <div className="form-group">
+                <label htmlFor="dob" className="form-label">
+                  <span>*</span> Date of Birth
+                </label>
+                <input 
+                  id="dob"
+                  type="text" 
+                  className="form-control" 
+                  placeholder="MM/DD/YYYY"
+                  value={dob}
+                  onChange={handleDobChange}
+                  required
+                />
               </div>
               
-              {/* Payment error messages */}
-              <div id="payment-message" className="error" style={{display: 'none'}}></div>
+              {errorMessage && (
+                <div className="error">
+                  {errorMessage}
+                </div>
+              )}
               
-              {/* Submit button */}
-              <button id="submit" className="btn" type="submit">
-                <div className="spinner" id="spinner"></div>
-                <span id="button-text">Next: Review</span>
+              <button 
+                type="submit"
+                className="btn" 
+                disabled={isLoading || !stripeInitialized}
+              >
+                {isLoading ? (
+                  <>
+                    <span className="spinner" aria-hidden="true"></span>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <span>Next: Review</span>
+                )}
               </button>
             </form>
             
-            {/* Render debug error log in development mode */}
-            {renderErrorLog()}
-            
-            {/* Stripe initialization status */}
+            {/* Debug indicator in development mode */}
             {process.env.NODE_ENV === 'development' && (
-              <div style={{marginTop: '20px', fontSize: '12px', color: '#666'}}>
-                <p>Stripe Status: {stripeInitialized ? '✅ Initialized' : '⏳ Loading...'}</p>
-                <p>Payment Element: {paymentElementReady ? '✅ Ready' : '⏳ Loading...'}</p>
-                <p>Link Status: {isLinkEnabled ? '✅ Enabled' : '⏳ Waiting for email'}</p>
+              <div style={{
+                marginTop: '20px',
+                padding: '10px',
+                backgroundColor: stripeInitialized ? '#e8f5e9' : '#ffebee',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}>
+                Status: {stripeInitialized ? 'Payment system loaded ✅' : 'Loading payment system...'}
               </div>
             )}
           </div>
@@ -618,6 +404,50 @@ export default function Checkout() {
           </div>
         </div>
       </div>
-    </div>
+
+      <footer style={{
+        marginTop: '50px',
+        padding: '30px 0',
+        backgroundColor: '#f4f4f4',
+        borderTop: '1px solid #ddd'
+      }}>
+        <div className="container">
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <p style={{fontSize: '14px', color: '#666'}}>
+                © Bell Canada, 2023. All rights reserved.
+              </p>
+              <ul style={{
+                display: 'flex',
+                listStyle: 'none',
+                padding: 0,
+                margin: '10px 0 0'
+              }}>
+                <li style={{marginRight: '20px'}}>
+                  <a href="#" style={{color: 'var(--bell-blue)', fontSize: '14px'}}>Privacy</a>
+                </li>
+                <li style={{marginRight: '20px'}}>
+                  <a href="#" style={{color: 'var(--bell-blue)', fontSize: '14px'}}>Security</a>
+                </li>
+                <li>
+                  <a href="#" style={{color: 'var(--bell-blue)', fontSize: '14px'}}>Legal & regulatory</a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <img 
+                src="https://www.bell.ca/styles/solutionBuilder/img/entrust.png" 
+                alt="Secured by Entrust SSL" 
+                style={{maxWidth: '120px', height: 'auto'}}
+              />
+            </div>
+          </div>
+        </div>
+      </footer>
+    </>
   );
 }
